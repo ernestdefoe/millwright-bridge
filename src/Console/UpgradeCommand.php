@@ -28,6 +28,7 @@ class UpgradeCommand extends AbstractCommand
             $label = $name === 'ernestdefoe/millwright-bridge' ? 'removed by the upgrade; Millwright takes over' : match ($r['status']) {
                 'ok' => 'ok'.($r['version'] ? ' ('.$r['version'].')' : ''),
                 'none' => 'NO FLARUM 2 RELEASE',
+                'php' => 'its Flarum 2 release needs PHP '.($r['php'] ?? '?'),
                 'replaced' => 'replaced by '.$r['replacement'],
                 'retired' => $r['replacement'] ? 'removed by the upgrade, replaced by '.$r['replacement'] : 'removed by the upgrade: not needed on Flarum 2',
                 default => 'not on Packagist, checked when building',

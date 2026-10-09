@@ -108,9 +108,10 @@ class Compatibility
 
     /**
      * @param list<array<string,mixed>> $versions expanded p2 entries, newest first
-     * @return array{status: string, version: ?string, replacement: ?string}
+     * @param string $php the PHP that will run Flarum 2: this one
+     * @return array{status: string, version: ?string, replacement: ?string, php?: string}
      */
-    public static function judge(string $name, array $versions): array
+    public static function judge(string $name, array $versions, string $php = PHP_VERSION): array
     {
         /*
          * 🚨 A package whose newest release replaces its own name is a rename.
@@ -124,6 +125,7 @@ class Compatibility
         }
 
         $abandoned = $versions[0]['abandoned'] ?? false;
+        $needsPhp = null;
 
         foreach ($versions as $v) {
             $version = (string) ($v['version'] ?? '');
@@ -134,12 +136,32 @@ class Compatibility
             }
 
             try {
-                if (Semver::satisfies(self::TARGET, $core)) {
-                    return ['status' => 'ok', 'version' => $version, 'replacement' => null];
+                if (! Semver::satisfies(self::TARGET, $core)) {
+                    continue;
                 }
+
+                /*
+                 * 🚨 Its PHP requirement too. michaelbelgium/flarum-profile-views
+                 * has a Flarum 2 release, but only for PHP 8.4. On a forum
+                 * running 8.3 the check said "ready" and Composer then refused
+                 * to build, with the reason buried under every older version
+                 * it had tried (ClaudiusH).
+                 */
+                $phpConstraint = $v['require']['php'] ?? null;
+
+                if (is_string($phpConstraint) && ! Semver::satisfies(self::phpVersion($php), $phpConstraint)) {
+                    $needsPhp ??= ['version' => $version, 'php' => $phpConstraint];
+                    continue;
+                }
+
+                return ['status' => 'ok', 'version' => $version, 'replacement' => null];
             } catch (\Throwable $e) {
                 continue;   // a constraint Composer cannot parse is not a promise
             }
+        }
+
+        if ($needsPhp !== null) {
+            return ['status' => 'php', 'version' => $needsPhp['version'], 'replacement' => null, 'php' => $needsPhp['php']];
         }
 
         return [
@@ -147,6 +169,12 @@ class Compatibility
             'version' => null,
             'replacement' => is_string($abandoned) && $abandoned !== '' ? $abandoned : null,
         ];
+    }
+
+    /** "8.3.33-1+ubuntu" is 8.3.33 to Composer's semver. */
+    private static function phpVersion(string $php): string
+    {
+        return preg_match('/^\d+\.\d+\.\d+/', $php, $m) ? $m[0] : $php;
     }
 
     /** The package a GitHub repository actually publishes, from its composer.json. */

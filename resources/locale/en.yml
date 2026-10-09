@@ -13,6 +13,7 @@ ernestdefoe-millwright-bridge:
     col_flarum2: Flarum 2
     status_ok: "Ready {version}"
     status_none: "No Flarum 2 release: remove it first"
+    status_php: "Its Flarum 2 release ({version}) needs PHP {php}"
     status_replaced: "Becomes {replacement}"
     status_retired: "Removed by the upgrade: not needed on Flarum 2"
     status_retired_by: "Removed by the upgrade: replaced by {replacement}"

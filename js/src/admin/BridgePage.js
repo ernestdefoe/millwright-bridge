@@ -114,7 +114,7 @@ export default class BridgePage extends ExtensionPage {
                     ? t('status_self')
                     : e.status === 'retired' && e.replacement
                       ? t('status_retired_by', { replacement: e.replacement })
-                      : t('status_' + e.status, { version: e.version || '', replacement: e.replacement || '' })}
+                      : t('status_' + e.status, { version: e.version || '', replacement: e.replacement || '', php: e.php || '' })}
                 </td>
               </tr>
             );

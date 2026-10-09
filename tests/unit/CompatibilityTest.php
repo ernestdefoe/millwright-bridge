@@ -78,4 +78,26 @@ class CompatibilityTest extends TestCase
         $this->assertSame(['flarum/core' => '^1.0'], $out[2]['require']);
         $this->assertArrayNotHasKey('source', $out[2]);
     }
+
+    /** michaelbelgium/flarum-profile-views: a Flarum 2 release that needs PHP 8.4 (ClaudiusH). */
+    public function test_a_flarum_2_release_this_php_cannot_run_is_reported_as_such(): void
+    {
+        $versions = [
+            ['version' => 'v9.0.1', 'require' => ['php' => '^8.4', 'flarum/core' => '^2.0.0-rc.1']],
+            ['version' => 'v8.0.4', 'require' => ['flarum/core' => '^1.0']],
+        ];
+
+        $this->assertSame(['status' => 'php', 'version' => 'v9.0.1', 'replacement' => null, 'php' => '^8.4'], Compatibility::judge('m/pv', $versions, '8.3.33'));
+        $this->assertSame('ok', Compatibility::judge('m/pv', $versions, '8.4.2-1+ubuntu')['status']);
+    }
+
+    public function test_an_older_flarum_2_release_this_php_can_run_is_chosen(): void
+    {
+        $r = Compatibility::judge('m/x', [
+            ['version' => '3.0.0', 'require' => ['php' => '^8.4', 'flarum/core' => '^2.0']],
+            ['version' => '2.0.0', 'require' => ['php' => '^8.2', 'flarum/core' => '^2.0']],
+        ], '8.3.0');
+
+        $this->assertSame(['status' => 'ok', 'version' => '2.0.0', 'replacement' => null], $r);
+    }
 }

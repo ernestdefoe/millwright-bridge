@@ -74,7 +74,10 @@ final class Preflight
         foreach ($checked as $name => $result) {
             $extensions[$name] = $result + ['installed' => $installed[$name] ?? ''];
 
-            if ($result['status'] === 'none') {
+            if ($result['status'] === 'php') {
+                $blockers[] = $name.'\'s Flarum 2 release ('.$result['version'].') needs PHP '.($result['php'] ?? '').', and this forum runs '.PHP_VERSION
+                    .'. Switch the site to a newer PHP in your host\'s control panel, or remove '.$name.', then check again.';
+            } elseif ($result['status'] === 'none') {
                 $blockers[] = $name.' has no release that works with Flarum 2. Remove it (in Extension Manager or with composer remove '.$name.') or wait for its author, then check again.';
             } elseif ($result['status'] === 'unknown') {
                 $notes[] = $name.' is not on Packagist, so it could not be checked here. If it has no Flarum 2 release, building Flarum 2 will stop and say so, before anything changes.';
