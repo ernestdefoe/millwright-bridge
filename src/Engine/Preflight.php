@@ -37,6 +37,20 @@ final class Preflight
             }
         }
 
+        /*
+         * 🚨 Every folder in vendor/, not just vendor/ itself. Running composer
+         * as root (docker exec defaults to root) leaves packages the web
+         * server cannot empty or write into, and on a host where vendor/ must
+         * be swapped by its contents the upgrade then failed halfway
+         * (ClaudiusH, Flarum-in-a-box, 2026-10-09).
+         */
+        [$locked, $owner, $first] = $this->notWritable($this->site->base.'/vendor');
+
+        if ($locked > 0) {
+            $blockers[] = $locked.' folder(s) in vendor/ cannot be changed by the web server'.($owner !== null ? ' (they belong to '.$owner.')' : '')
+                .', for example '.$first.'. This usually comes from running composer as root. Give them back with `chown -R '.$this->webUser().' vendor`, then check again.';
+        }
+
         // vendor/ is renamed inside the forum's folder, and Flarum 2 is built beside it.
         if (! is_writable($this->site->base)) {
             $blockers[] = 'The forum\'s folder ('.$this->site->base.') cannot be changed by the web server, and the upgrade builds Flarum 2 there, beside vendor/. Fix its permissions and check again.';
@@ -98,6 +112,40 @@ final class Preflight
             'notes' => $notes,
             'extensions' => $extensions,
         ];
+    }
+
+    /** @return array{0: int, 1: ?string, 2: ?string} how many folders, whose, and the first one */
+    private function notWritable(string $vendor): array
+    {
+        $count = 0;
+        $owner = null;
+        $first = null;
+
+        try {
+            $it = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($vendor, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+
+            foreach ($it as $f) {
+                if ($f->isDir() && ! $f->isLink() && ! $f->isWritable()) {
+                    $count++;
+                    $first ??= 'vendor/'.substr($f->getPathname(), strlen($vendor) + 1);
+                    $owner ??= function_exists('posix_getpwuid') ? (posix_getpwuid($f->getOwner())['name'] ?? null) : null;
+                }
+            }
+        } catch (\Throwable $e) {
+            return [0, null, null];
+        }
+
+        return [$count, $owner, $first];
+    }
+
+    private function webUser(): string
+    {
+        $me = function_exists('posix_geteuid') && function_exists('posix_getpwuid') ? (posix_getpwuid(posix_geteuid())['name'] ?? null) : null;
+
+        return $me !== null ? $me.':'.$me : 'www-data:www-data';
     }
 
     private function size(string $dir): int

@@ -113,7 +113,9 @@ final class Upgrader
         }
 
         $this->journal->intend('vendor');
-        $mode = Swapper::swapIn($base.'/vendor', $stage.'/vendor', $aside);
+        // 🚨 Recorded before vendor/ is touched: a contents swap that dies
+        // halfway must be undone as one, not as a rename (ClaudiusH, 2026-10-09).
+        $mode = Swapper::swapIn($base.'/vendor', $stage.'/vendor', $aside, fn () => $this->journal->remember('swap', 'contents'));
         $this->journal->remember('swap', $mode);
         $this->journal->done('vendor');
 

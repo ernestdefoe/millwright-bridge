@@ -22,7 +22,12 @@ final class Swapper
     /**
      * @return string 'rename' | 'contents': how it was done, for swapBack()
      */
-    public static function swapIn(string $vendor, string $staged, string $aside): string
+    /**
+     * @param ?callable $beforeContents called before anything in vendor/ is
+     *        removed, so the caller can record that the contents swap began:
+     *        the undo must know which way to reverse even if this dies halfway
+     */
+    public static function swapIn(string $vendor, string $staged, string $aside, ?callable $beforeContents = null): string
     {
         if (@rename($vendor, $aside)) {
             if (@rename($staged, $vendor)) {
@@ -39,6 +44,11 @@ final class Swapper
 
         // Contents instead: copy Flarum 1 aside (nothing destroyed until the copy is complete).
         self::copyTree($vendor, $aside);
+
+        if ($beforeContents !== null) {
+            $beforeContents();
+        }
+
         self::emptyDir($vendor);
 
         if (! self::moveChildren($staged, $vendor)) {

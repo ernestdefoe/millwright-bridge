@@ -67,6 +67,13 @@ final class Bridge
             return ['ok' => false, 'error' => 'Build Flarum 2 first.'];
         }
 
+        // The check again, now: ownership or permissions can change between building and upgrading.
+        $report = $this->check();
+
+        if (! $report['ok']) {
+            return ['ok' => false, 'error' => 'The check found something to fix first: '.implode(' ', $report['blockers']), 'log' => [], 'undone' => []];
+        }
+
         return (new Upgrader($this->site, $this->journal))->run();
     }
 
