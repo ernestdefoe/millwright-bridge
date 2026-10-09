@@ -109,7 +109,13 @@ export default class BridgePage extends ExtensionPage {
                   <code>{name}</code>
                 </td>
                 <td>{e.installed}</td>
-                <td>{name === 'ernestdefoe/millwright-bridge' ? t('status_self') : t('status_' + e.status, { version: e.version || '', replacement: e.replacement || '' })}</td>
+                <td>
+                  {name === 'ernestdefoe/millwright-bridge'
+                    ? t('status_self')
+                    : e.status === 'retired' && e.replacement
+                      ? t('status_retired_by', { replacement: e.replacement })
+                      : t('status_' + e.status, { version: e.version || '', replacement: e.replacement || '' })}
+                </td>
               </tr>
             );
           })}

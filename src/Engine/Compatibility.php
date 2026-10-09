@@ -22,6 +22,8 @@ class Compatibility
         'blomstra/horizon' => 'fof/horizon',
         'flarum/package-manager' => 'flarum/extension-manager',
         'ernestdefoe/millwright-bridge' => null,
+        // Only ever needed before the upgrade, so it has no Flarum 2 release (ClaudiusH).
+        'fof/upgrade-advisor' => null,
     ];
 
     public const TARGET = '2.0.0';

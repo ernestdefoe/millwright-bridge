@@ -29,7 +29,7 @@ class UpgradeCommand extends AbstractCommand
                 'ok' => 'ok'.($r['version'] ? ' ('.$r['version'].')' : ''),
                 'none' => 'NO FLARUM 2 RELEASE',
                 'replaced' => 'replaced by '.$r['replacement'],
-                'retired' => $r['replacement'] ? 'retired, replaced by '.$r['replacement'] : 'retired (in core now)',
+                'retired' => $r['replacement'] ? 'removed by the upgrade, replaced by '.$r['replacement'] : 'removed by the upgrade: not needed on Flarum 2',
                 default => 'not on Packagist, checked when building',
             };
             $this->info(sprintf('  %-42s %s', $name, $label));

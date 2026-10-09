@@ -57,10 +57,11 @@ class CompatibilityTest extends TestCase
             return null;
         });
 
-        $out = $compat->check(['flarum/tags' => 'v1.8.8', 'blomstra/flarum-redis' => '1.0.0', 'acme/private' => '1.0.0']);
+        $out = $compat->check(['flarum/tags' => 'v1.8.8', 'blomstra/flarum-redis' => '1.0.0', 'fof/upgrade-advisor' => '1.0.0', 'acme/private' => '1.0.0']);
 
         $this->assertSame('ok', $out['flarum/tags']['status']);
         $this->assertSame(['status' => 'retired', 'version' => null, 'replacement' => 'fof/redis'], $out['blomstra/flarum-redis']);
+        $this->assertSame('retired', $out['fof/upgrade-advisor']['status'], 'only needed before the upgrade; never a blocker');
         $this->assertSame('unknown', $out['acme/private']['status']);
         $this->assertSame(['acme/private'], $asked);
     }
