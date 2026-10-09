@@ -2,9 +2,16 @@ import app from 'flarum/admin/app';
 import ExtensionPage from 'flarum/admin/components/ExtensionPage';
 import Button from 'flarum/common/components/Button';
 import LoadingIndicator from 'flarum/common/components/LoadingIndicator';
+import extractText from 'flarum/common/utils/extractText';
 
 const t = (key, params) => app.translator.trans('ernestdefoe-millwright-bridge.admin.' + key, params);
 const url = () => app.forum.attribute('apiUrl') + '/bridge';
+
+/** A message from the server, with `commands` shown as code (ClaudiusH: a bare command did not read as one). */
+const rich = (text) =>
+  String(text)
+    .split('`')
+    .map((part, i) => (i % 2 ? <code>{part}</code> : part));
 
 /**
  * Check, build, upgrade: three steps, each one only offered once the one
@@ -27,7 +34,7 @@ export default class BridgePage extends ExtensionPage {
     return (
       <div className="BridgePage container">
         <p className="BridgePage-intro">{t('intro')}</p>
-        {this.error ? <div className="BridgePage-error">{this.error}</div> : null}
+        {this.error ? <div className="BridgePage-error">{rich(this.error)}</div> : null}
         {this.result ? this.resultView() : this.steps()}
       </div>
     );
@@ -46,7 +53,7 @@ export default class BridgePage extends ExtensionPage {
         {r.blockers.length ? (
           <ul className="BridgeList BridgeList--blockers">
             {r.blockers.map((b) => (
-              <li>{b}</li>
+              <li>{rich(b)}</li>
             ))}
           </ul>
         ) : (
@@ -55,7 +62,7 @@ export default class BridgePage extends ExtensionPage {
         {r.notes.length ? (
           <ul className="BridgeList BridgeList--notes">
             {r.notes.map((n) => (
-              <li>{n}</li>
+              <li>{rich(n)}</li>
             ))}
           </ul>
         ) : null}
@@ -149,7 +156,7 @@ export default class BridgePage extends ExtensionPage {
     return (
       <section className="BridgeStep BridgeStep--failed">
         <h3>{t('failed_title')}</h3>
-        <p>{r.error}</p>
+        <p>{rich(r.error)}</p>
         {r.undone && r.undone.length ? (
           <ul className="BridgeList">
             {r.undone.map((u) => (
@@ -173,7 +180,7 @@ export default class BridgePage extends ExtensionPage {
         this.report = r;
       })
       .catch(() => {
-        this.error = t('check_failed');
+        this.error = extractText(t('check_failed'));
       })
       .finally(() => {
         this.busy = null;
@@ -195,7 +202,7 @@ export default class BridgePage extends ExtensionPage {
         }
       })
       .catch(() => {
-        this.error = t('stage_failed');
+        this.error = extractText(t('stage_failed'));
       })
       .finally(() => {
         this.busy = null;
@@ -218,7 +225,7 @@ export default class BridgePage extends ExtensionPage {
       .catch(() => {
         // The request outlived the page's patience or the swap ended the
         // response oddly. The forum knows what happened; reloading shows it.
-        this.result = { ok: false, error: t('lost_contact'), undone: [], log: [] };
+        this.result = { ok: false, error: extractText(t('lost_contact')), undone: [], log: [] };
       })
       .finally(() => {
         this.busy = null;

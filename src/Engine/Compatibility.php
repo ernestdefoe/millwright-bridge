@@ -100,6 +100,19 @@ class Compatibility
                 $result['replacement'] = $this->realName((array) ($versions[0]['source'] ?? []));
             }
 
+            /*
+             * 🚨 A takeover the old package never mentions. FoF continued
+             * afrux/forum-widgets-core as fof/forum-widgets-core, whose
+             * composer.json replaces the old name, but the old name has no
+             * Flarum 2 release and no pointer to the new one, so the check told
+             * people to remove an extension whose successor was right there
+             * (ClaudiusH). Only for extensions with no Flarum 2 release: one
+             * search for its short name, keeping only results that replace it.
+             */
+            if ($result['status'] === 'none' && ($successor = $this->successor($name)) !== null) {
+                $result = ['status' => 'replaced', 'version' => null, 'replacement' => $successor];
+            }
+
             $out[$name] = $result;
         }
 
@@ -169,6 +182,35 @@ class Compatibility
             'version' => null,
             'replacement' => is_string($abandoned) && $abandoned !== '' ? $abandoned : null,
         ];
+    }
+
+    /** A Flarum 2 package that declares it replaces $name, found by Packagist search. */
+    private function successor(string $name): ?string
+    {
+        $short = substr($name, (int) strpos($name, '/') + 1);
+        $body = @file_get_contents('https://packagist.org/search.json?type=flarum-extension&per_page=15&q='.rawurlencode($short), false, stream_context_create([
+            'http' => ['timeout' => 15, 'header' => "User-Agent: Millwright Bridge\r\n"],
+        ]));
+
+        foreach ((array) (is_string($body) ? json_decode($body, true)['results'] ?? [] : []) as $hit) {
+            $candidate = (string) ($hit['name'] ?? '');
+
+            if ($candidate === '' || $candidate === $name) {
+                continue;
+            }
+
+            $versions = ($this->fetch)($candidate);
+
+            if ($versions === null || ! isset(array_change_key_case((array) ($versions[0]['replace'] ?? []))[strtolower($name)])) {
+                continue;
+            }
+
+            if (self::judge($candidate, $versions)['status'] === 'ok') {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     /** "8.3.33-1+ubuntu" is 8.3.33 to Composer's semver. */

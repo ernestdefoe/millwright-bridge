@@ -22,7 +22,7 @@ final class Stager
 
     public function stageDir(): string
     {
-        return $this->site->work.'/stage';
+        return $this->site->stageDir();
     }
 
     /**

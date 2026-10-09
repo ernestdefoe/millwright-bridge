@@ -24,7 +24,7 @@ $work = __DIR__;
 $storage = dirname($work);
 $base = dirname($storage);
 
-foreach (['Site', 'Journal', 'Database', 'Caches', 'Health', 'Restorer'] as $class) {
+foreach (['Site', 'Journal', 'Database', 'Caches', 'Health', 'Swapper', 'Restorer'] as $class) {
     require $work.'/engine/'.$class.'.php';
 }
 

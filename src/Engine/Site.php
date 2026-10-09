@@ -61,6 +61,21 @@ final class Site
         @file_put_contents($this->work.'/index.html', '');
     }
 
+    /**
+     * Beside vendor/, never under storage/: a rename between the two fails
+     * wherever storage/ is a separate disk or Docker volume.
+     */
+    public function stageDir(): string
+    {
+        return $this->base.'/.bridge-stage';
+    }
+
+    /** Where Flarum 1's vendor/ waits during and after the upgrade, for the undo. */
+    public function asideDir(): string
+    {
+        return $this->base.'/.bridge-flarum1-vendor';
+    }
+
     public function url(): string
     {
         return rtrim((string) ($this->config['url'] ?? ''), '/');

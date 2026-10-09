@@ -63,7 +63,7 @@ final class Upgrader
                 $this->journal->state('needs-undo');
 
                 return $this->result(false, null, 'The upgrade failed ('.$e->getMessage().') and putting it back also failed ('
-                    .$r->getMessage().'). Run php storage/bridge/undo.php, or open it from your host\'s cron, to finish.', []);
+                    .$r->getMessage().'). Run `php storage/bridge/undo.php`, or run it from your host\'s cron, to finish.', []);
             }
 
             return $this->result(false, null, 'The upgrade failed, so Flarum 1 has been put back: '.$e->getMessage(), $undone);
@@ -90,7 +90,7 @@ final class Upgrader
         $engine = $this->site->work.'/engine';
         @mkdir($engine, 0775, true);
 
-        foreach (['Site', 'Journal', 'Database', 'Caches', 'Health', 'Restorer'] as $class) {
+        foreach (['Site', 'Journal', 'Database', 'Caches', 'Health', 'Swapper', 'Restorer'] as $class) {
             copy(__DIR__.'/'.$class.'.php', $engine.'/'.$class.'.php');
         }
 
@@ -103,23 +103,27 @@ final class Upgrader
     private function swap(): void
     {
         $base = $this->site->base;
-        $w = $this->site->work;
+
+        $stage = $this->site->stageDir();
+        $aside = $this->site->asideDir();
+
+        if (is_dir($aside)) {
+            Swapper::emptyDir($aside);   // from an earlier attempt that was put back
+            @rmdir($aside);
+        }
 
         $this->journal->intend('vendor');
-
-        if (! @rename($base.'/vendor', $w.'/vendor.v1')) {
-            throw new \RuntimeException('vendor/ could not be moved aside.');
-        }
-
-        if (! @rename($w.'/stage/vendor', $base.'/vendor')) {
-            throw new \RuntimeException('the Flarum 2 build could not be moved into vendor/.');
-        }
-
+        $mode = Swapper::swapIn($base.'/vendor', $stage.'/vendor', $aside);
+        $this->journal->remember('swap', $mode);
         $this->journal->done('vendor');
 
+        if ($mode === 'contents') {
+            $this->journal->log('vendor/ could not be renamed on this host, so its contents were swapped instead');
+        }
+
         $this->journal->intend('files');
-        copy($w.'/stage/composer.json', $base.'/composer.json');
-        copy($w.'/stage/composer.lock', $base.'/composer.lock');
+        copy($stage.'/composer.json', $base.'/composer.json');
+        copy($stage.'/composer.lock', $base.'/composer.lock');
 
         // Flarum 2 has a driver of its own for MariaDB.
         $config = $this->site->config;
@@ -246,7 +250,7 @@ final class Upgrader
      */
     private function preload(): void
     {
-        foreach ([Restorer::class, Database::class, Caches::class, Php::class, Updater::class, Health::class, Compatibility::class] as $class) {
+        foreach ([Restorer::class, Swapper::class, Database::class, Caches::class, Php::class, Updater::class, Health::class, Compatibility::class] as $class) {
             class_exists($class);
         }
     }

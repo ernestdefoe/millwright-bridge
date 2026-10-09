@@ -19,7 +19,6 @@ final class Restorer
     public function run(): array
     {
         $done = [];
-        $w = $this->site->work;
         $base = $this->site->base;
         $backup = $this->site->backupDir($this->journal);
 
@@ -28,15 +27,8 @@ final class Restorer
             $done[] = 'database restored from the backup';
         }
 
-        if ($this->journal->has('vendor') && is_dir($w.'/vendor.v1')) {
-            if (is_dir($base.'/vendor')) {
-                @rename($base.'/vendor', $w.'/vendor.v2-'.date('YmdHis'));
-            }
-
-            if (! @rename($w.'/vendor.v1', $base.'/vendor')) {
-                throw new \RuntimeException('Flarum 1\'s files could not be moved back into vendor/. They are in '.$w.'/vendor.v1.');
-            }
-
+        if ($this->journal->has('vendor') && is_dir($this->site->asideDir())) {
+            Swapper::swapBack($base.'/vendor', $this->site->asideDir(), (string) ($this->journal->read()['swap'] ?? 'rename'), $this->site->stageDir().'/vendor');
             $done[] = 'Flarum 1\'s files moved back';
         }
 

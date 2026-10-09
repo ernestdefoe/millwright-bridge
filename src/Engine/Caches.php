@@ -18,8 +18,12 @@ final class Caches
 
         // Compiled bundles and their manifest. Avatars, uploads and extension
         // files live in subfolders and are left alone.
-        foreach (glob($site->public.'/assets/*.{js,css,map}', GLOB_BRACE) ?: [] as $file) {
-            @unlink($file);
+        // 🚨 No GLOB_BRACE: musl (Alpine, so most Docker images) does not have it,
+        // and the undo died on it (ClaudiusH, 2026-10-09).
+        foreach (['js', 'css', 'map'] as $ext) {
+            foreach (glob($site->public.'/assets/*.'.$ext) ?: [] as $file) {
+                @unlink($file);
+            }
         }
 
         @unlink($site->public.'/assets/rev-manifest.json');
