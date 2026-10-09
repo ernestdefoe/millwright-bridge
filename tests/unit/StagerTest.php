@@ -68,4 +68,15 @@ class StagerTest extends TestCase
         $this->assertSame('acme-thing', Upgrader::id('acme/flarum-ext-thing'));
         $this->assertSame('flarum-lang-persian', Upgrader::id('flarum-lang/persian'));
     }
+
+    /** Flarum-in-a-box computes its url with a function in config.php; only the driver may change. */
+    public function test_only_the_driver_line_of_config_php_changes(): void
+    {
+        $config = "<?php return [\n    'database' => [\n        // Flarum 1.x only knows the 'mysql' driver\n        'driver' => 'mysql',\n    ],\n    'url' => (function () { return 'https://forum.test'; })(),\n];\n";
+
+        $next = Upgrader::mariadbDriver($config);
+
+        $this->assertSame(str_replace("'driver' => 'mysql'", "'driver' => 'mariadb'", $config), $next);
+        $this->assertNull(Upgrader::mariadbDriver("<?php return ['database' => ['driver' => 'pgsql']];"));
+    }
 }

@@ -120,6 +120,36 @@ final class Site
         return $out;
     }
 
+    /**
+     * Packages the forum gets from path repositories, read from disk:
+     * name => its composer.json. Packagist has never heard of them.
+     *
+     * @return array<string, array<string,mixed>>
+     */
+    public function localPackages(): array
+    {
+        $root = (array) json_decode((string) @file_get_contents($this->base.'/composer.json'), true);
+        $out = [];
+
+        foreach ((array) ($root['repositories'] ?? []) as $repo) {
+            if (! is_array($repo) || ($repo['type'] ?? '') !== 'path' || ! is_string($repo['url'] ?? null)) {
+                continue;
+            }
+
+            $pattern = str_starts_with($repo['url'], '/') ? $repo['url'] : $this->base.'/'.$repo['url'];
+
+            foreach (array_filter(glob($pattern) ?: [], 'is_dir') as $dir) {
+                $json = (array) json_decode((string) @file_get_contents($dir.'/composer.json'), true);
+
+                if (isset($json['name'])) {
+                    $out[(string) $json['name']] = $json;
+                }
+            }
+        }
+
+        return $out;
+    }
+
     public function isMariaDb(): bool
     {
         try {

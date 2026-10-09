@@ -100,4 +100,18 @@ class CompatibilityTest extends TestCase
 
         $this->assertSame(['status' => 'ok', 'version' => '2.0.0', 'replacement' => null], $r);
     }
+
+    /** Flarum-in-a-box's flarum1 image ships a path-repository package that needs Flarum 1 (ClaudiusH). */
+    public function test_a_local_package_is_judged_from_its_own_composer_json(): void
+    {
+        $compat = new Compatibility(fn () => $this->fail('a local package was looked up on Packagist'));
+
+        $out = $compat->check(
+            ['pianotell/flarum-demo-auto-confirm' => 'dev-main', 'acme/ported' => 'dev-main'],
+            ['pianotell/flarum-demo-auto-confirm' => ['require' => ['flarum/core' => '^1.0']], 'acme/ported' => ['require' => ['flarum/core' => '^2.0']]]
+        );
+
+        $this->assertSame('local', $out['pianotell/flarum-demo-auto-confirm']['status']);
+        $this->assertSame('ok', $out['acme/ported']['status']);
+    }
 }

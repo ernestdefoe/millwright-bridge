@@ -11,6 +11,14 @@ namespace ErnestDefoe\MillwrightBridge\Engine;
  */
 final class Php
 {
+    /**
+     * 🚨 Its own copy of the minimum, not Preflight::MIN_PHP. This runs after the
+     * swap, when only preloaded classes exist, and an upgrade started from the
+     * web never loads Preflight: the reference killed the migrate step on
+     * Flarum-in-a-box (2026-10-09).
+     */
+    private const MIN = '8.3.0';
+
     private static ?string $found = null;
     private static bool $looked = false;
 
@@ -40,7 +48,7 @@ final class Php
 
             $probe = self::run([$path, '-r', 'echo PHP_SAPI, " ", PHP_VERSION;'], sys_get_temp_dir());
 
-            if ($probe['code'] === 0 && preg_match('/^cli (\S+)/', trim($probe['output']), $m) && version_compare($m[1], Preflight::MIN_PHP, '>=')) {
+            if ($probe['code'] === 0 && preg_match('/^cli (\S+)/', trim($probe['output']), $m) && version_compare($m[1], self::MIN, '>=')) {
                 return self::$found = $path;
             }
         }

@@ -125,12 +125,23 @@ final class Upgrader
         copy($stage.'/composer.json', $base.'/composer.json');
         copy($stage.'/composer.lock', $base.'/composer.lock');
 
-        // Flarum 2 has a driver of its own for MariaDB.
-        $config = $this->site->config;
+        /*
+         * Flarum 2 has a driver of its own for MariaDB.
+         *
+         * 🚨 Only the driver line changes, in the file's own text. config.php is
+         * PHP, not data: Flarum-in-a-box works out the forum's url with a
+         * function on every request. Loading it and writing it back with
+         * var_export froze that url to whatever the command line saw and
+         * dropped the function.
+         */
+        if (($this->site->config['database']['driver'] ?? '') === 'mysql' && $this->site->isMariaDb()) {
+            $next = self::mariadbDriver((string) file_get_contents($base.'/config.php'));
 
-        if (($config['database']['driver'] ?? '') === 'mysql' && $this->site->isMariaDb()) {
-            $config['database']['driver'] = 'mariadb';
-            file_put_contents($base.'/config.php', "<?php return ".var_export($config, true).";\n");
+            if ($next !== null) {
+                file_put_contents($base.'/config.php', $next);
+            } else {
+                $this->journal->log('config.php keeps the mysql driver: its driver line was not in a form this could change safely, and Flarum 2 still connects to MariaDB with it');
+            }
         }
 
         $this->journal->done('files');
@@ -253,6 +264,18 @@ final class Upgrader
         foreach ([Restorer::class, Swapper::class, Database::class, Caches::class, Php::class, Updater::class, Health::class, Compatibility::class] as $class) {
             class_exists($class);
         }
+    }
+
+    /**
+     * config.php with its driver switched from mysql to mariadb, changing that
+     * one value in the file's own text; null when it is not there to change.
+     */
+    public static function mariadbDriver(string $config): ?string
+    {
+        // Single quotes: in a double-quoted PHP string "\2" is a control character, not a backreference.
+        $next = preg_replace('/([\'"]driver[\'"]\s*=>\s*)([\'"])mysql\2/', '${1}${2}mariadb${2}', $config, 1, $count);
+
+        return $count === 1 && is_string($next) ? $next : null;
     }
 
     public static function id(string $package): string

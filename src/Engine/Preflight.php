@@ -73,13 +73,15 @@ final class Preflight
         }
 
         $installed = $this->site->installed();
-        $checked = $this->compat->check($installed);
+        $checked = $this->compat->check($installed, $this->site->localPackages());
         $extensions = [];
 
         foreach ($checked as $name => $result) {
             $extensions[$name] = $result + ['installed' => $installed[$name] ?? ''];
 
-            if ($result['status'] === 'php') {
+            if ($result['status'] === 'local') {
+                $blockers[] = $name.' is a local package in this forum\'s own folders, and it requires Flarum 1. Remove it with `composer remove '.$name.'`, or update its composer.json for Flarum 2, then check again.';
+            } elseif ($result['status'] === 'php') {
                 $blockers[] = $name.'\'s Flarum 2 release ('.$result['version'].') needs PHP '.($result['php'] ?? '').', and this forum runs '.PHP_VERSION
                     .'. Switch the site to a newer PHP in your host\'s control panel, or remove '.$name.', then check again.';
             } elseif ($result['status'] === 'none') {

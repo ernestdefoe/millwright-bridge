@@ -59,7 +59,8 @@ final class Stager
 
         $next = $current;
         $next['require'] = $require;
-        $next['minimum-stability'] = 'beta';
+        // Beta at least, for the Flarum 2 releases still in beta; looser if the forum already was.
+        $next['minimum-stability'] = in_array($current['minimum-stability'] ?? '', ['dev', 'alpha'], true) ? $current['minimum-stability'] : 'beta';
         $next['prefer-stable'] = true;
         unset($next['require-dev'], $next['config']['vendor-dir']);
 

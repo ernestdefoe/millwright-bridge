@@ -70,11 +70,31 @@ class Compatibility
      * @return array<string, array{status: string, version: ?string, replacement: ?string}>
      *   status: ok | none | replaced | retired | unknown
      */
-    public function check(array $installed): array
+    public function check(array $installed, array $local = []): array
     {
         $out = [];
 
         foreach ($installed as $name => $version) {
+            /*
+             * 🚨 A local package (a path repository) is read from disk, not
+             * guessed at. Flarum-in-a-box's flarum1 image ships one that needs
+             * Flarum 1; reported as "not on Packagist", it then stopped the
+             * build with a stability error that said nothing useful.
+             */
+            if (isset($local[$name])) {
+                $core = $local[$name]['require']['flarum/core'] ?? null;
+                $ok = ! is_string($core);
+
+                try {
+                    $ok = $ok || Semver::satisfies(self::TARGET, $core);
+                } catch (\Throwable $e) {
+                    $ok = false;
+                }
+
+                $out[$name] = ['status' => $ok ? 'ok' : 'local', 'version' => $ok ? 'local' : null, 'replacement' => null];
+                continue;
+            }
+
             if (str_starts_with($name, 'flarum/') && ! array_key_exists($name, self::RETIRED)) {
                 // Bundled extensions move with core.
                 $out[$name] = ['status' => 'ok', 'version' => null, 'replacement' => null];
