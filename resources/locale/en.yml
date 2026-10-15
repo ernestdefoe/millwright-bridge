@@ -35,3 +35,32 @@ ernestdefoe-millwright-bridge:
     failed_title: "The upgrade did not complete"
     reload: Reload
     lost_contact: "The page lost contact with the forum while upgrading. Reload: the forum will show whether it is now on Flarum 2 or was put back on Flarum 1. If it shows an error instead, run `php storage/bridge/undo.php`."
+
+  api:
+    unknown_action: Unknown action.
+    must_fix_first: The check found something that must be fixed first.
+    composer_failed: Composer could not work out a Flarum 2 install for this forum. Nothing has changed.
+    build_first: Build Flarum 2 first.
+    fix_first: "The check found something to fix first: {blockers}"
+    backup_failed: "The backup failed, so nothing was changed: {error}"
+    restore_failed: "The upgrade failed ({error}) and putting it back also failed ({restore_error}). Run `php storage/bridge/undo.php`, or run it from your host's cron, to finish."
+    rolled_back: "The upgrade failed, so Flarum 1 has been put back: {error}"
+    undone_database: database restored from the backup
+    undone_files: Flarum 1's files moved back
+    undone_config: composer.json, composer.lock and config.php restored
+    undone_caches: caches cleared
+    php_too_old: "Flarum 2 needs PHP {min} or newer, and this forum runs {version}. Ask your host to switch this site to PHP 8.3 or 8.4 (it is usually a setting in the control panel), then check again."
+    path_not_writable: "{path} cannot be changed by the web server, so the upgrade could not swap it. Fix its permissions and check again."
+    vendor_locked: "{count} folder(s) in vendor/ cannot be changed by the web server, for example {first}. This usually comes from running composer as root. Give them back with `chown -R {user} vendor`, then check again."
+    vendor_locked_owner: "{count} folder(s) in vendor/ cannot be changed by the web server (they belong to {owner}), for example {first}. This usually comes from running composer as root. Give them back with `chown -R {user} vendor`, then check again."
+    base_not_writable: "The forum's folder ({path}) cannot be changed by the web server, and the upgrade builds Flarum 2 there, beside vendor/. Fix its permissions and check again."
+    storage_not_writable: storage/ is not writable, and the upgrade builds Flarum 2 and keeps its backups there.
+    disk_space: "There is not enough free disk space. The upgrade keeps the current version beside the new one so it can be put back, which needs about {needed} free; there is {free}."
+    memory_note: "PHP's memory limit is {limit}. Working out the Flarum 2 install can need more; the upgrade raises it where the host allows, and says so if it cannot."
+    proc_open_note: "This host does not let PHP start other processes, so the database update will be done through Flarum 2's own updater instead of the command line. That is supported; it is just slower."
+    curl_note: "PHP's curl extension is missing, so the site cannot be checked after the upgrade and a failed upgrade would not be put back automatically."
+    no_url: "config.php has no url, so the forum cannot be checked after the upgrade."
+    ext_local: "{name} is a local package in this forum's own folders, and it requires Flarum 1. Remove it with `composer remove {name}`, or update its composer.json for Flarum 2, then check again."
+    ext_php: "{name}'s Flarum 2 release ({version}) needs PHP {php}, and this forum runs {current}. Switch the site to a newer PHP in your host's control panel, or remove {name}, then check again."
+    ext_none: "{name} has no release that works with Flarum 2. Remove it (in Extension Manager or with `composer remove {name}`) or wait for its author, then check again."
+    ext_unknown: "{name} is not on Packagist, so it could not be checked here. If it has no Flarum 2 release, building Flarum 2 will stop and say so, before anything changes."

@@ -9,6 +9,7 @@ use ErnestDefoe\MillwrightBridge\Engine\Site;
 use ErnestDefoe\MillwrightBridge\Engine\Stager;
 use ErnestDefoe\MillwrightBridge\Engine\Upgrader;
 use Flarum\Foundation\Paths;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /** The three things the admin page and the command can ask for. */
 final class Bridge
@@ -16,7 +17,7 @@ final class Bridge
     private Site $site;
     private Journal $journal;
 
-    public function __construct(Paths $paths)
+    public function __construct(Paths $paths, private TranslatorInterface $translator)
     {
         $this->site = Site::at($paths->base, $paths->storage, $paths->public);
         $this->journal = new Journal($this->site->work.'/journal.json');
@@ -25,7 +26,7 @@ final class Bridge
     public function check(): array
     {
         $this->site->protectWork();
-        $report = (new Preflight($this->site, new Compatibility(null, $this->site->work.'/packagist')))->run();
+        $report = (new Preflight($this->site, new Compatibility(null, $this->site->work.'/packagist'), $this->t(...)))->run();
         $report['staged'] = (new Stager($this->site, $this->journal))->staged();
         $report['state'] = $this->journal->read()['state'];
 
@@ -37,7 +38,7 @@ final class Bridge
         $report = $this->check();
 
         if (! $report['ok']) {
-            return ['ok' => false, 'error' => 'The check found something that must be fixed first.', 'report' => $report];
+            return ['ok' => false, 'error' => $this->t('must_fix_first'), 'report' => $report];
         }
 
         $this->journal->reset();
@@ -58,23 +59,44 @@ final class Bridge
 
         return $result['ok']
             ? ['ok' => true, 'core' => $result['core']]
-            : ['ok' => false, 'error' => 'Composer could not work out a Flarum 2 install for this forum. Nothing has changed.', 'output' => $this->tail($result['output'])];
+            : ['ok' => false, 'error' => $this->t('composer_failed'), 'output' => $this->tail($result['output'])];
     }
 
     public function upgrade(): array
     {
         if (! (new Stager($this->site, $this->journal))->staged()) {
-            return ['ok' => false, 'error' => 'Build Flarum 2 first.'];
+            return ['ok' => false, 'error' => $this->t('build_first')];
         }
 
         // The check again, now: ownership or permissions can change between building and upgrading.
         $report = $this->check();
 
         if (! $report['ok']) {
-            return ['ok' => false, 'error' => 'The check found something to fix first: '.implode(' ', $report['blockers']), 'log' => [], 'undone' => []];
+            return ['ok' => false, 'error' => $this->t('fix_first', ['blockers' => implode(' ', $report['blockers'])]), 'log' => [], 'undone' => []];
         }
 
-        return (new Upgrader($this->site, $this->journal))->run();
+        /*
+         * 🚨 Translated HERE, before the swap. The translator loads its classes
+         * from vendor/, which is Flarum 2's once the swap begins, so the upgrade
+         * gets finished strings with {placeholders} and fills them with strtr().
+         */
+        $messages = [
+            'backup_failed' => $this->t('backup_failed', ['error' => '{error}']),
+            'restore_failed' => $this->t('restore_failed', ['error' => '{error}', 'restore_error' => '{restore_error}']),
+            'rolled_back' => $this->t('rolled_back', ['error' => '{error}']),
+            'undone_database' => $this->t('undone_database'),
+            'undone_files' => $this->t('undone_files'),
+            'undone_config' => $this->t('undone_config'),
+            'undone_caches' => $this->t('undone_caches'),
+        ];
+
+        return (new Upgrader($this->site, $this->journal, $messages))->run();
+    }
+
+    /** A message from the locale, in the admin's language. */
+    public function t(string $key, array $params = []): string
+    {
+        return $this->translator->trans('ernestdefoe-millwright-bridge.api.'.$key, $params);
     }
 
     private function tail(string $output): string

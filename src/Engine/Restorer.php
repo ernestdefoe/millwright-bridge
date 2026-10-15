@@ -11,7 +11,11 @@ namespace ErnestDefoe\MillwrightBridge\Engine;
  */
 final class Restorer
 {
-    public function __construct(private Site $site, private Journal $journal)
+    /**
+     * @param array<string, string> $messages translated lines from the web upgrade;
+     *   undo.php runs with no Flarum at all, so it falls back to English
+     */
+    public function __construct(private Site $site, private Journal $journal, private array $messages = [])
     {
     }
 
@@ -24,12 +28,12 @@ final class Restorer
 
         if ($this->journal->has('migrate') && is_file($backup.'/database.sql.gz')) {
             (new Database($this->site->pdo(), $this->site->prefix()))->restore($backup.'/database.sql.gz');
-            $done[] = 'database restored from the backup';
+            $done[] = $this->messages['undone_database'] ?? 'database restored from the backup';
         }
 
         if ($this->journal->has('vendor') && is_dir($this->site->asideDir())) {
             Swapper::swapBack($base.'/vendor', $this->site->asideDir(), (string) ($this->journal->read()['swap'] ?? 'rename'), $this->site->stageDir().'/vendor');
-            $done[] = 'Flarum 1\'s files moved back';
+            $done[] = $this->messages['undone_files'] ?? 'Flarum 1\'s files moved back';
         }
 
         foreach (['composer.json', 'composer.lock', 'config.php'] as $file) {
@@ -38,10 +42,10 @@ final class Restorer
             }
         }
 
-        $done[] = 'composer.json, composer.lock and config.php restored';
+        $done[] = $this->messages['undone_config'] ?? 'composer.json, composer.lock and config.php restored';
 
         Caches::clear($this->site);
-        $done[] = 'caches cleared';
+        $done[] = $this->messages['undone_caches'] ?? 'caches cleared';
 
         $this->journal->state('rolled-back');
         $this->journal->log('Put back: '.implode(', ', $done));

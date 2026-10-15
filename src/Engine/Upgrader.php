@@ -15,7 +15,8 @@ namespace ErnestDefoe\MillwrightBridge\Engine;
  */
 final class Upgrader
 {
-    public function __construct(private Site $site, private Journal $journal)
+    /** @param array<string, string> $messages finished strings, translated before the swap (see Bridge::upgrade()) */
+    public function __construct(private Site $site, private Journal $journal, private array $messages)
     {
     }
 
@@ -34,7 +35,7 @@ final class Upgrader
             // Nothing has changed yet: say so, and stop.
             $this->journal->state('idle');
 
-            return $this->result(false, null, 'The backup failed, so nothing was changed: '.$e->getMessage(), []);
+            return $this->result(false, null, strtr($this->messages['backup_failed'], ['{error}' => $e->getMessage()]), []);
         }
 
         try {
@@ -58,15 +59,14 @@ final class Upgrader
             $this->journal->log('Failed: '.$e->getMessage());
 
             try {
-                $undone = (new Restorer($this->site, $this->journal))->run();
+                $undone = (new Restorer($this->site, $this->journal, $this->messages))->run();
             } catch (\Throwable $r) {
                 $this->journal->state('needs-undo');
 
-                return $this->result(false, null, 'The upgrade failed ('.$e->getMessage().') and putting it back also failed ('
-                    .$r->getMessage().'). Run `php storage/bridge/undo.php`, or run it from your host\'s cron, to finish.', []);
+                return $this->result(false, null, strtr($this->messages['restore_failed'], ['{error}' => $e->getMessage(), '{restore_error}' => $r->getMessage()]), []);
             }
 
-            return $this->result(false, null, 'The upgrade failed, so Flarum 1 has been put back: '.$e->getMessage(), $undone);
+            return $this->result(false, null, strtr($this->messages['rolled_back'], ['{error}' => $e->getMessage()]), $undone);
         }
     }
 

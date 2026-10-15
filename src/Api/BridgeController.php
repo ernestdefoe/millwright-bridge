@@ -9,6 +9,7 @@ use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * GET: the check. POST {action: stage|upgrade}: build Flarum 2, or swap it in.
@@ -16,7 +17,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class BridgeController implements RequestHandlerInterface
 {
-    public function __construct(private Paths $paths)
+    public function __construct(private Paths $paths, private TranslatorInterface $translator)
     {
     }
 
@@ -24,7 +25,7 @@ class BridgeController implements RequestHandlerInterface
     {
         RequestUtil::getActor($request)->assertAdmin();
 
-        $bridge = new Bridge($this->paths);
+        $bridge = new Bridge($this->paths, $this->translator);
 
         if ($request->getMethod() === 'GET') {
             return new JsonResponse($bridge->check());
@@ -54,7 +55,7 @@ class BridgeController implements RequestHandlerInterface
 
         return new JsonResponse(match ($action) {
             'stage' => $bridge->stage(),
-            default => ['ok' => false, 'error' => 'Unknown action.'],
+            default => ['ok' => false, 'error' => $bridge->t('unknown_action')],
         });
     }
 }

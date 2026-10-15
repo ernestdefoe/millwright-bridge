@@ -13,7 +13,8 @@ final class Preflight
 {
     public const MIN_PHP = '8.3.0';
 
-    public function __construct(private Site $site, private Compatibility $compat)
+    /** @param \Closure(string, array<string, mixed>=): string $t a message from the locale (see Bridge::t()) */
+    public function __construct(private Site $site, private Compatibility $compat, private \Closure $t)
     {
     }
 
@@ -27,13 +28,12 @@ final class Preflight
         $notes = [];
 
         if (version_compare(PHP_VERSION, self::MIN_PHP, '<')) {
-            $blockers[] = 'Flarum 2 needs PHP '.self::MIN_PHP.' or newer, and this forum runs '.PHP_VERSION
-                .'. Ask your host to switch this site to PHP 8.3 or 8.4 (it is usually a setting in the control panel), then check again.';
+            $blockers[] = ($this->t)('php_too_old', ['min' => self::MIN_PHP, 'version' => PHP_VERSION]);
         }
 
         foreach (['vendor', 'composer.json', 'composer.lock', 'config.php'] as $path) {
             if (! is_writable($this->site->base.'/'.$path)) {
-                $blockers[] = $path.' cannot be changed by the web server, so the upgrade could not swap it. Fix its permissions and check again.';
+                $blockers[] = ($this->t)('path_not_writable', ['path' => $path]);
             }
         }
 
@@ -47,43 +47,43 @@ final class Preflight
         [$locked, $owner, $first] = $this->notWritable($this->site->base.'/vendor');
 
         if ($locked > 0) {
-            $blockers[] = $locked.' folder(s) in vendor/ cannot be changed by the web server'.($owner !== null ? ' (they belong to '.$owner.')' : '')
-                .', for example '.$first.'. This usually comes from running composer as root. Give them back with `chown -R '.$this->webUser().' vendor`, then check again.';
+            $blockers[] = ($this->t)($owner !== null ? 'vendor_locked_owner' : 'vendor_locked', [
+                'count' => $locked, 'owner' => (string) $owner, 'first' => (string) $first, 'user' => $this->webUser(),
+            ]);
         }
 
         // vendor/ is renamed inside the forum's folder, and Flarum 2 is built beside it.
         if (! is_writable($this->site->base)) {
-            $blockers[] = 'The forum\'s folder ('.$this->site->base.') cannot be changed by the web server, and the upgrade builds Flarum 2 there, beside vendor/. Fix its permissions and check again.';
+            $blockers[] = ($this->t)('base_not_writable', ['path' => $this->site->base]);
         }
 
         if (! is_writable($this->site->storage)) {
-            $blockers[] = 'storage/ is not writable, and the upgrade builds Flarum 2 and keeps its backups there.';
+            $blockers[] = ($this->t)('storage_not_writable');
         }
 
         $free = @disk_free_space($this->site->storage);
         $vendor = $this->size($this->site->base.'/vendor');
 
         if ($free !== false && $vendor > 0 && $free < $vendor * 3) {
-            $blockers[] = 'There is not enough free disk space. The upgrade keeps the current version beside the new one so it can be put back, which needs about '
-                .$this->mb($vendor * 3).' free; there is '.$this->mb((int) $free).'.';
+            $blockers[] = ($this->t)('disk_space', ['needed' => $this->mb($vendor * 3), 'free' => $this->mb((int) $free)]);
         }
 
         $memory = $this->bytes((string) ini_get('memory_limit'));
 
         if ($memory !== -1 && $memory < 512 * 1024 * 1024) {
-            $notes[] = 'PHP\'s memory limit is '.ini_get('memory_limit').'. Working out the Flarum 2 install can need more; the upgrade raises it where the host allows, and says so if it cannot.';
+            $notes[] = ($this->t)('memory_note', ['limit' => (string) ini_get('memory_limit')]);
         }
 
         if (! function_exists('proc_open')) {
-            $notes[] = 'This host does not let PHP start other processes, so the database update will be done through Flarum 2\'s own updater instead of the command line. That is supported; it is just slower.';
+            $notes[] = ($this->t)('proc_open_note');
         }
 
         if (! function_exists('curl_init')) {
-            $notes[] = 'PHP\'s curl extension is missing, so the site cannot be checked after the upgrade and a failed upgrade would not be put back automatically.';
+            $notes[] = ($this->t)('curl_note');
         }
 
         if ($this->site->url() === '') {
-            $blockers[] = 'config.php has no url, so the forum cannot be checked after the upgrade.';
+            $blockers[] = ($this->t)('no_url');
         }
 
         $installed = $this->site->installed();
@@ -94,14 +94,13 @@ final class Preflight
             $extensions[$name] = $result + ['installed' => $installed[$name] ?? ''];
 
             if ($result['status'] === 'local') {
-                $blockers[] = $name.' is a local package in this forum\'s own folders, and it requires Flarum 1. Remove it with `composer remove '.$name.'`, or update its composer.json for Flarum 2, then check again.';
+                $blockers[] = ($this->t)('ext_local', ['name' => $name]);
             } elseif ($result['status'] === 'php') {
-                $blockers[] = $name.'\'s Flarum 2 release ('.$result['version'].') needs PHP '.($result['php'] ?? '').', and this forum runs '.PHP_VERSION
-                    .'. Switch the site to a newer PHP in your host\'s control panel, or remove '.$name.', then check again.';
+                $blockers[] = ($this->t)('ext_php', ['name' => $name, 'version' => (string) $result['version'], 'php' => (string) ($result['php'] ?? ''), 'current' => PHP_VERSION]);
             } elseif ($result['status'] === 'none') {
-                $blockers[] = $name.' has no release that works with Flarum 2. Remove it (in Extension Manager or with `composer remove '.$name.'`) or wait for its author, then check again.';
+                $blockers[] = ($this->t)('ext_none', ['name' => $name]);
             } elseif ($result['status'] === 'unknown') {
-                $notes[] = $name.' is not on Packagist, so it could not be checked here. If it has no Flarum 2 release, building Flarum 2 will stop and say so, before anything changes.';
+                $notes[] = ($this->t)('ext_unknown', ['name' => $name]);
             }
         }
 
