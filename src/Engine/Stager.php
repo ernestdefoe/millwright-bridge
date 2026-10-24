@@ -7,7 +7,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
- * Build the complete Flarum 2 install in storage/bridge/stage, beside the
+ * Build the complete Flarum 2 install in .bridge-stage beside vendor/, next to the
  * live forum, which keeps running untouched the whole time.
  *
  * Composer runs in this process, as a library: shared hosts often forbid

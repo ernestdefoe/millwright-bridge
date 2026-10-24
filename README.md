@@ -10,7 +10,7 @@ Nothing changes until the last step, and if that step fails, the forum is put ba
    - extensions with a Flarum 2 release are marked ready;
    - extensions without one are named, and need removing first;
    - renamed packages are spotted (for example `v17development/flarum-seo` → `fof/seo`), as are packages Flarum 2 retired.
-2. **Build Flarum 2.** Installs the complete Flarum 2 dependency tree into `storage/bridge/stage` with a bundled Composer, while the forum keeps running. If it cannot be resolved, you see why, and nothing has changed.
+2. **Build Flarum 2.** Installs the complete Flarum 2 dependency tree into `.bridge-stage`, a folder beside `vendor/` in the forum root, with a bundled Composer, while the forum keeps running. If it cannot be resolved, you see why, and nothing has changed.
 3. **Upgrade:**
    1. backs up the database and `composer.json`, `composer.lock` and `config.php`;
    2. swaps Flarum 2 into `vendor/` by renaming, so nothing is deleted;
