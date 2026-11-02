@@ -1,12 +1,18 @@
 {
     "name": "ernestdefoe/millwright-bridge",
     "description": "Upgrade a Flarum 1.8 forum to Flarum 2.0 from the admin page: checks every extension, builds Flarum 2 beside the live forum, swaps it in, and puts everything back if anything fails.",
-    "keywords": ["flarum", "upgrade", "flarum 2", "migration"],
+    "keywords": [
+        "flarum",
+        "upgrade",
+        "flarum 2",
+        "migration"
+    ],
     "type": "flarum-extension",
     "license": "MIT",
     "authors": [
         {
             "name": "Ernest Defoe",
+            "email": "ernestdefoe@gmail.com",
             "homepage": "https://ernestdefoe.online"
         }
     ],
