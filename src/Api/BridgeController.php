@@ -3,13 +3,11 @@
 namespace ErnestDefoe\MillwrightBridge\Api;
 
 use ErnestDefoe\MillwrightBridge\Bridge;
-use Flarum\Foundation\Paths;
 use Flarum\Http\RequestUtil;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * GET: the check. POST {action: stage|upgrade}: build Flarum 2, or swap it in.
@@ -17,7 +15,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 class BridgeController implements RequestHandlerInterface
 {
-    public function __construct(private Paths $paths, private TranslatorInterface $translator)
+    public function __construct(private Bridge $bridge)
     {
     }
 
@@ -25,7 +23,7 @@ class BridgeController implements RequestHandlerInterface
     {
         RequestUtil::getActor($request)->assertAdmin();
 
-        $bridge = new Bridge($this->paths, $this->translator);
+        $bridge = $this->bridge;
 
         if ($request->getMethod() === 'GET') {
             return new JsonResponse($bridge->check());

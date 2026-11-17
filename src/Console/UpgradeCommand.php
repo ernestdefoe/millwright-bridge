@@ -4,9 +4,7 @@ namespace ErnestDefoe\MillwrightBridge\Console;
 
 use ErnestDefoe\MillwrightBridge\Bridge;
 use Flarum\Console\AbstractCommand;
-use Flarum\Foundation\Paths;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 class UpgradeCommand extends AbstractCommand
 {
@@ -20,7 +18,7 @@ class UpgradeCommand extends AbstractCommand
 
     protected function fire(): int
     {
-        $bridge = new Bridge(resolve(Paths::class), resolve(TranslatorInterface::class));
+        $bridge = resolve(Bridge::class);
         $report = $bridge->check();
 
         $this->info('PHP '.$report['php']);
