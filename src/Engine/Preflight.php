@@ -121,20 +121,29 @@ final class Preflight
         $first = null;
 
         try {
+            /*
+             * 🚨 A folder the web server cannot read is locked too. Without
+             * CATCH_GET_CHILD the walk threw on the first one, and the catch
+             * reported nothing locked, so the check passed a vendor/ the swap
+             * could not empty.
+             */
             $it = new \RecursiveIteratorIterator(
                 new \RecursiveDirectoryIterator($vendor, \FilesystemIterator::SKIP_DOTS),
-                \RecursiveIteratorIterator::SELF_FIRST
+                \RecursiveIteratorIterator::SELF_FIRST,
+                \RecursiveIteratorIterator::CATCH_GET_CHILD
             );
 
             foreach ($it as $f) {
-                if ($f->isDir() && ! $f->isLink() && ! $f->isWritable()) {
+                if ($f->isDir() && ! $f->isLink() && (! $f->isWritable() || ! $f->isReadable())) {
                     $count++;
                     $first ??= 'vendor/'.substr($f->getPathname(), strlen($vendor) + 1);
                     $owner ??= function_exists('posix_getpwuid') ? (posix_getpwuid($f->getOwner())['name'] ?? null) : null;
                 }
             }
         } catch (\Throwable $e) {
-            return [0, null, null];
+            error_log('[millwright-bridge] could not check vendor/ is writable: '.$e->getMessage());
+
+            return [max($count, 1), $owner, $first ?? 'vendor/'];
         }
 
         return [$count, $owner, $first];
@@ -152,7 +161,11 @@ final class Preflight
         $total = 0;
 
         try {
-            $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS));
+            $it = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::LEAVES_ONLY,
+                \RecursiveIteratorIterator::CATCH_GET_CHILD
+            );
 
             foreach ($it as $file) {
                 if ($file->isFile() && ! $file->isLink()) {
@@ -160,6 +173,8 @@ final class Preflight
                 }
             }
         } catch (\Throwable $e) {
+            error_log('[millwright-bridge] could not measure '.$dir.', so the disk space check is skipped: '.$e->getMessage());
+
             return 0;
         }
 

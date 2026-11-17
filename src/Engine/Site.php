@@ -155,6 +155,8 @@ final class Site
         try {
             return stripos((string) $this->pdo()->query('SELECT VERSION()')->fetchColumn(), 'mariadb') !== false;
         } catch (\Throwable $e) {
+            error_log('[millwright-bridge] could not read the database version, so config.php keeps its driver: '.$e->getMessage());
+
             return false;
         }
     }

@@ -88,6 +88,7 @@ class Compatibility
                 try {
                     $ok = $ok || Semver::satisfies(self::TARGET, $core);
                 } catch (\Throwable $e) {
+                    error_log('[millwright-bridge] '.$name.' requires flarum/core "'.$core.'", which Composer cannot parse: '.$e->getMessage());
                     $ok = false;
                 }
 
@@ -189,7 +190,9 @@ class Compatibility
 
                 return ['status' => 'ok', 'version' => $version, 'replacement' => null];
             } catch (\Throwable $e) {
-                continue;   // a constraint Composer cannot parse is not a promise
+                // A constraint Composer cannot parse is not a promise.
+                error_log('[millwright-bridge] skipped '.$name.' '.$version.': '.$e->getMessage());
+                continue;
             }
         }
 
