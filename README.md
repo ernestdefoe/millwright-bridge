@@ -38,6 +38,10 @@ php flarum bridge:upgrade           # check, build, then ask before swapping
 
 > If Composer refuses to install on Flarum 1.8 with a security advisory about `league/flysystem`, that is Flarum 1's own dependency, which current Composer blocks by default. For this one command, add `--no-security-blocking`.
 
+## After the upgrade
+
+Flarum 1's files stay in `.bridge-flarum1-vendor`, in the forum's folder, so the upgrade can still be undone. Once the forum works as it should, delete that folder and `.bridge-stage`. `storage/bridge` holds the backups; keep it as long as you want them.
+
 ## If an upgrade is interrupted
 
 Every step is recorded before it happens. If the request was killed partway through and the forum is not working, run this with PHP 8.3:

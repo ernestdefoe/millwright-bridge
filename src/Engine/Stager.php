@@ -103,6 +103,7 @@ final class Stager
         $dir = $this->stageDir();
         $this->wipe($dir);
         @mkdir($dir, 0775, true);
+        Site::protect($dir);
 
         $current = (array) json_decode((string) file_get_contents($this->site->base.'/composer.json'), true);
         file_put_contents($dir.'/composer.json', json_encode($this->composerJson($current, $extensions), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n");

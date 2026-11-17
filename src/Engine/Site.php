@@ -56,9 +56,20 @@ final class Site
     public function protectWork(): void
     {
         @mkdir($this->work, 0775, true);
-        @file_put_contents($this->work.'/.htaccess', "Require all denied\nDeny from all\n");
-        @file_put_contents($this->work.'/web.config', '<?xml version="1.0"?><configuration><system.webServer><authorization><deny users="*" /></authorization></system.webServer></configuration>'."\n");
-        @file_put_contents($this->work.'/index.html', '');
+        self::protect($this->work);
+    }
+
+    /**
+     * 🚨 The build folder (auth.json while it builds, then composer.lock) and
+     * Flarum 1's vendor/ wait in the forum's own folder, which a 1.x forum
+     * installed in the document root serves, and Flarum's rules deny only
+     * vendor/ and storage/ by name. Flarum 1's copy stays after the upgrade.
+     */
+    public static function protect(string $dir): void
+    {
+        @file_put_contents($dir.'/.htaccess', "Require all denied\nDeny from all\n");
+        @file_put_contents($dir.'/web.config', '<?xml version="1.0"?><configuration><system.webServer><authorization><deny users="*" /></authorization></system.webServer></configuration>'."\n");
+        @file_put_contents($dir.'/index.html', '');
     }
 
     /**

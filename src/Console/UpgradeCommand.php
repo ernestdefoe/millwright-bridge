@@ -85,6 +85,7 @@ class UpgradeCommand extends AbstractCommand
         }
 
         $this->info('This forum now runs Flarum '.$result['version'].'. Millwright is installed to keep it up to date.');
+        $this->info('Flarum 1\'s files are kept in .bridge-flarum1-vendor for the undo. Once the forum works as it should, delete it and .bridge-stage.');
 
         return 0;
     }

@@ -118,6 +118,7 @@ final class Upgrader
         $mode = Swapper::swapIn($base.'/vendor', $stage.'/vendor', $aside, fn () => $this->journal->remember('swap', 'contents'));
         $this->journal->remember('swap', $mode);
         $this->journal->done('vendor');
+        Site::protect($aside);
 
         if ($mode === 'contents') {
             $this->journal->log('vendor/ could not be renamed on this host, so its contents were swapped instead');
