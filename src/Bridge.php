@@ -9,6 +9,7 @@ use ErnestDefoe\MillwrightBridge\Engine\Site;
 use ErnestDefoe\MillwrightBridge\Engine\Stager;
 use ErnestDefoe\MillwrightBridge\Engine\Upgrader;
 use Flarum\Foundation\Paths;
+use Flarum\Locale\LocaleManager;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /** The three things the admin page and the command can ask for. */
@@ -17,10 +18,37 @@ final class Bridge
     private Site $site;
     private Journal $journal;
 
-    public function __construct(Paths $paths, private TranslatorInterface $translator)
+    public function __construct(Paths $paths, LocaleManager $locales, private TranslatorInterface $translator)
     {
         $this->site = Site::at($paths->base, $paths->storage, $paths->public);
         $this->journal = new Journal($this->site->work.'/journal.json');
+        $this->heal($locales);
+    }
+
+    /**
+     * 🚨 On Flarum 1.8, translations reach the translator only when
+     * LocaleManager is resolved, and the HTTP frontend is what resolves it. A
+     * console run of bridge:upgrade translated without it, so the translator
+     * cached an EMPTY catalogue in storage/locale, and the whole forum then
+     * showed raw keys until its cache was cleared (2026-11-17). Asking for
+     * LocaleManager above fixes new runs; a forum already left with an empty
+     * catalogue gets it removed, and adding a resource makes the translator
+     * build it again.
+     */
+    private function heal(LocaleManager $locales): void
+    {
+        $key = 'ernestdefoe-millwright-bridge.api.ext_local';
+
+        if ($this->translator->trans($key) !== $key) {
+            return;
+        }
+
+        foreach (glob($this->site->storage.'/locale/catalogue.*') ?: [] as $file) {
+            @unlink($file);
+        }
+
+        error_log('[millwright-bridge] removed a translation cache that had none of this forum\'s extensions in it');
+        $locales->addTranslations('en', dirname(__DIR__).'/resources/locale/en.yml');
     }
 
     public function check(): array
