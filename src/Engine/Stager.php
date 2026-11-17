@@ -113,13 +113,15 @@ final class Stager
             copy($this->site->base.'/auth.json', $dir.'/auth.json');
         }
 
-        $this->journal->log('Building Flarum 2 beside the forum');
+        // The credentials are only needed to resolve, so they go whatever happens; a killed build leaves them to wipe() above.
+        try {
+            $this->journal->log('Building Flarum 2 beside the forum');
 
-        $result = $this->composer(['command' => 'update', '--working-dir' => $dir, '--prefer-dist' => true, '--no-plugins' => true,
-            '--no-scripts' => true, '--no-dev' => true, '--optimize-autoloader' => true, '--with-all-dependencies' => true, '--no-interaction' => true]);
-
-        // The credentials were only needed to resolve.
-        @unlink($dir.'/auth.json');
+            $result = $this->composer(['command' => 'update', '--working-dir' => $dir, '--prefer-dist' => true, '--no-plugins' => true,
+                '--no-scripts' => true, '--no-dev' => true, '--optimize-autoloader' => true, '--with-all-dependencies' => true, '--no-interaction' => true]);
+        } finally {
+            @unlink($dir.'/auth.json');
+        }
 
         $core = $this->coreVersion($dir.'/vendor');
 
